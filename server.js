@@ -4,8 +4,14 @@ const cors = require('cors');
 const morgan = require('morgan');
 const connectDB = require('./config/db');
 
+// Load environment variables
+dotenv.config();
+
 // Import middlewares
-const { notFound, errorHandler } = require('./middleware/errorMiddleware');
+const {
+  notFound,
+  errorHandler,
+} = require('./middleware/errorMiddleware');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -14,40 +20,66 @@ const libraryRoutes = require('./routes/libraryRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const communityRoutes = require('./routes/communityRoutes');
 
-// Load environment variables
-dotenv.config();
-
-// Connect to Database
-connectDB();
-
 const app = express();
 
-// Middlewares
+// ========================================
+// Middleware
+// ========================================
+
 app.use(cors());
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Health Check API
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Book Reading App API is running' });
+// ========================================
+// Health Check
+// ========================================
+
+app.get('/api/health', async (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Book Reading App API is running',
+  });
 });
 
-// Mount Routes
+// ========================================
+// Database
+// ========================================
+
+// Connect to MongoDB
+// Do this before handling API requests.
+connectDB();
+
+// ========================================
+// API Routes
+// ========================================
+
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/library', libraryRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/community', communityRoutes);
 
-// Error Handling Middlewares
+// ========================================
+// 404 Handler
+// ========================================
+
 app.use(notFound);
+
+// ========================================
+// Error Handler
+// ========================================
+
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+// ========================================
+// Vercel Export
+// ========================================
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+// IMPORTANT:
+// Do NOT use app.listen() on Vercel.
+module.exports = app;
